@@ -1,36 +1,39 @@
 package config
 
 import (
-	"log"
-	"strings"
-
 	"github.com/spf13/viper"
+	"log"
 )
 
-var Cfg *viper.Viper
+type Config struct {
+	V *viper.Viper
+	Configpath  string
+}
 
-func setConfig() *viper.Viper {
+var Cfg *Config
+
+func (cfg *Config)setConfig(confpath string)  *Config {
 	viper.SetConfigName("system.config")
 	viper.SetConfigType("properties")
-	viper.AddConfigPath(".")
+
+	viper.AddConfigPath(confpath)
+	viper.AddConfigPath("./")
+
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatal("read config failed: %v", err)
 	}
-	return viper.GetViper()
+	cfg.V = viper.GetViper()
+	return cfg
 }
 
-func GetConfig() {
-	Cfg = setConfig()
-}
-
-func GetZKConfig(c *viper.Viper)  []string {
-	hosts := strings.Split(c.GetString("zookeeper.conf.client.servers"),",")
-	return hosts
+func GetConfig(confpath string)  *Config {
+	c := new(Config)
+	Cfg = c.setConfig(confpath)
+	return Cfg
 }
 
 func init()  {
-	GetConfig()
 }
 
 //func GetZookeeperServer()  {
