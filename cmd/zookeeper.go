@@ -5,7 +5,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"alink/internal/zookeeper"
+	"alink/pkg/zookeeper"
 	"fmt"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ var (
 // zookeeperCmd represents the zookeeper command
 var zkCmd = &cobra.Command{
 	Use:   "zk",
-	Short: "zookeeper",
+	Short: "connect zookeeper",
 	Long: `Used to connect to zk to perform operations of adding, deleting, modifying and checking`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("zookeeper is connecting ")
