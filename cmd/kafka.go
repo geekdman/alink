@@ -39,11 +39,9 @@ to quickly create a Cobra application.`,
 		defer kc.Kafkaconn.Close()
 
 		kc.GetTopics()
-		fmt.Println(kc.Kafkaconn.RemoteAddr())
-		fmt.Println(kc.Kafkaconn.LocalAddr())
 		fmt.Println(kc.Kafkaconn.Controller())
 		fmt.Println(kc.Kafkaconn.Brokers())
-		fmt.Println(kc.Kafkaconn.ApiVersions())
+		//fmt.Println(kc.Kafkaconn.ApiVersions())
 	},
 }
 
@@ -52,14 +50,4 @@ func init() {
 	kafkaCmd.AddCommand(
 		listkafkaCmd,
 		)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// kafkaCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// kafkaCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
