@@ -2,14 +2,27 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1ca3c3a3-cb7f-47d4-b335-0a1c87aaceab" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/config/es.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pkg/es/elasticsearch.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pkg/s3/s3.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pkg/ssh/ssh.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/ssh/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/elasticsearch.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/kafka.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/kafka.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/s3client.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/s3client.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/flate/inflate.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/flate/inflate.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/flate/inflate_gen.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/flate/inflate_gen.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/fse/compress.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/fse/compress.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/gzip/gunzip.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/gzip/gunzip.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/huff0/bytereader.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/huff0/compress.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/huff0/compress.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/huff0/huff0.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/huff0/huff0.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode_best.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode_best.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode_go.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/s2/encode_go.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/enc_best.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/enc_best.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/enc_better.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/klauspost/compress/zstd/enc_better.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vendor/modules.txt" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/modules.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -32,6 +45,9 @@
     <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="ProjectId" id="2bUvjhdbM1BfiXCoEdPkyWjpm1m" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -63,6 +79,15 @@
       <filePath value="$PROJECT_DIR$" />
       <method v="2" />
     </configuration>
+    <configuration name="go build alink/test/ssh" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="alink" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="alink/test/ssh" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/test/ssh/main.go" />
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
       <module name="alink" />
       <working_directory value="$PROJECT_DIR$" />
@@ -74,6 +99,11 @@
       <framework value="gotest" />
       <method v="2" />
     </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build alink/test/ssh" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
