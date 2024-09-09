@@ -23,7 +23,7 @@ type SSH struct {
 	LastResult string
 }
 
-func NewSSH(ip string, username string, password string, key string, mode string, port ...int) *SSH {
+func NewSSH(ip string, username string, password string) *SSH {
 	/**
 	  创建命令行实例
 	  @param ip IP地址
@@ -31,21 +31,23 @@ func NewSSH(ip string, username string, password string, key string, mode string
 	  @param password 登陆密码
 	  @param key 认证私钥
 	  @param mode 认证模式( password: 密码 | key: 秘钥 )
-	  @param port 端口号, 不填写则默认为22
-	*/
+	  @param port 端口号, 默认为22
+	**/
 
 	client := new(SSH)
 	client.IP = ip
 	client.Username = username
 	client.Password = password
-	client.Key = key
-	client.Mode = mode
-
-	if len(port) <= 0 {
-		client.Port = 22
-	} else {
-		client.Port = port[0]
-	}
+	client.Mode = "password"
+	client.Port = 22
+	//client.Key = key
+	//client.Mode = mode
+	//
+	//if len(port) <= 0 {
+	//	client.Port = 22
+	//} else {
+	//	client.Port = port[0]
+	//}
 
 	return client
 }
@@ -59,7 +61,6 @@ func (s *SSH) Connect() error {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         10 * time.Second,
 	}
-
 	// 判断SSH连接的认证方式
 	if s.Mode == "key" {
 		signer, err := ssh.ParsePrivateKey([]byte(s.Key))
@@ -68,7 +69,7 @@ func (s *SSH) Connect() error {
 		}
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	} else {
-		fmt.Println("s.Password", s.Password)
+		//fmt.Println("s.Password", s.Password)
 		config.Auth = []ssh.AuthMethod{ssh.Password(s.Password)}
 	}
 
@@ -82,7 +83,7 @@ func (s *SSH) Connect() error {
 	return nil
 }
 
-func (s SSH) Run(command string) (string, error) {
+func (s *SSH) Run(command string) (string, error) {
 	/**
 	  执行Shell命令
 	  @param command 要执行的命令，多个命令采用 ; 隔开

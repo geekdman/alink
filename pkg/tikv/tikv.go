@@ -1,22 +1,19 @@
-//package tikv
-//
-//import (
-//	"alink/config"
-//	"fmt"
-//	"time"
-//	"github.com/pingcap/tidb/kv"
-//	"github.com/pingcap/tidb/store/tikv"
-//)
-//
-//type kvConn  struct {
-//
-//	K,V []byte
-//}
-//
-//func GetKVConn()  *kvConn{
-//	driver := tikv.Driver{}
-//	var err error
-//	store, err = driver.Open(fmt.Sprintf("tikv://%s", *pdAddr))
-//	//fmt.Println(conn.Server())
-//	return zC
-//}
+package tikv
+
+import (
+	"alink/config"
+	"fmt"
+	"time"
+    "github.com/tikv/client-go/v2/txnkv"
+
+)
+
+type kvConn  struct {
+	K,V []byte
+}
+
+func GetKVConn()  *kvConn{
+	hosts := config.Cfg.GetKVConfig()
+	client, err := txnkv.NewClient(hosts)
+	return nil
+}

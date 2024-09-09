@@ -2,6 +2,8 @@ package zookeeper
 
 import (
 	"alink/config"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/samuel/go-zookeeper/zk"
 	"log"
@@ -18,7 +20,7 @@ type zkConn  struct {
 func GetZKConn()  *zkConn{
 	zC := new(zkConn)
 	hosts := config.Cfg.GetZKConfig()
-	conn, _, err := zk.Connect(hosts, time.Second*5)
+	conn, _, err := zk.Connect(hosts, time.Second*5, zk.WithLogInfo(false))
 	zC.Conn = conn
 	if err != nil {
 		fmt.Println(err)
@@ -27,7 +29,6 @@ func GetZKConn()  *zkConn{
 	//fmt.Println(conn.Server())
 	return zC
 }
-
 // 新增节点
 func (zc *zkConn) Add()  {
 
@@ -99,5 +100,33 @@ func (zc *zkConn) Delete()  {
 	// version是用于 CAS支持，可以通过此种方式保证原子性
 	if err := zc.Conn.Delete(zc.Path, stat.Version); err != nil {
 		log.Fatal(err)
+	}
+}
+// get Children
+func (zc *zkConn) Children() {
+	children, _, err := zc.Conn.Children(zc.Path)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(children)
+}
+
+func isJSON(s string) bool {
+	var js map[string]interface{}
+	return json.Unmarshal([]byte(s), &js) == nil
+}
+
+func printString(s string) {
+	if isJSON(s) {
+		var prettyJSON bytes.Buffer
+		if err := json.Indent(&prettyJSON, []byte(s), "", "  "); err != nil {
+			log.Printf("Error indenting JSON: %s", err)
+			fmt.Println(s) // Fallback to plain print if indenting fails
+		} else {
+			fmt.Println(prettyJSON.String())
+		}
+	} else {
+		fmt.Println(s)
 	}
 }

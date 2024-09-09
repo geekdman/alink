@@ -58,21 +58,21 @@ func (s *S3)ListBuckets()  {
 }
 
 func (s *S3)ListObjects(bucketName string)  {
-	//ctx, cancel := context.WithCancel(context.Background())
-	//
-	//defer cancel()
-	//
-	//objectCh := s.S3Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
-	//	Prefix: "myprefix",
-	//	Recursive: true,
-	//})
-	//for object := range objectCh {
-	//	if object.Err != nil {
-	//		fmt.Println(object.Err)
-	//		return
-	//	}
-	//	fmt.Println(object)
-	//}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	defer cancel()
+
+	objectCh := s.S3Client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix: "myprefix",
+		Recursive: true,
+	})
+	for object := range objectCh {
+		if object.Err != nil {
+			fmt.Println(object.Err)
+			return
+		}
+		fmt.Println(object)
+	}
 }
 //创建桶
 func (s *S3)MakeBucket(bucketName string)  {

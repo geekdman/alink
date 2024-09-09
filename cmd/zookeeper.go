@@ -65,7 +65,7 @@ var setzkCmd = &cobra.Command{
 		zc.Path = path
 		zc.Value = value
 		zc.Set()
-		zc.Get()
+		//zc.Get()
 	},
 }
 
@@ -80,7 +80,21 @@ var delzkCmd = &cobra.Command{
 		zc.Path = path
 		zc.Value = value
 		zc.Delete()
-		zc.Get()
+		//zc.Get()
+	},
+}
+
+var lszkCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "ls",
+	Long: "ls",
+	Run: func(cmd *cobra.Command, args []string) {
+		zc :=zookeeper.GetZKConn()
+		// 关闭zk 连接
+		defer zc.Conn.Close()
+		zc.Path = path
+		zc.Value = value
+		zc.Children()
 	},
 }
 
@@ -91,6 +105,7 @@ func init() {
 		delzkCmd,
 		setzkCmd,
 		getzkCmd,
+		lszkCmd,
 		)
 	//add 增加
 	addzkCmd.Flags().StringVarP(&path,"key","k","","eg: /test ")
@@ -101,7 +116,11 @@ func init() {
 	setzkCmd.Flags().StringVarP(&value,"value","v","","")
 	setzkCmd.Flags().StringVarP(&filename,"filename","f","","")
 	//
-	//
+	//get
 	getzkCmd.Flags().StringVarP(&path,"key","k","","eg: /test")
+	// delete
 	delzkCmd.Flags().StringVarP(&path,"key","k","","eg: /test")
+
+	//lscmd 修改
+	lszkCmd.Flags().StringVarP(&path,"key","k","","eg: /test")
 }
