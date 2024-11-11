@@ -45,5 +45,4 @@ func init() {
 	sshCmd.Flags().IntVarP(&port,"port","P",22,"default is 22")
 	sshCmd.Flags().StringVarP(&command,"command","c","","使用双引号包裹命令")
 	//sshCmd.Flags().StringSliceVarP(&command,"command","c",nil,"default")
-
 }
