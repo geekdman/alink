@@ -3,10 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="1ca3c3a3-cb7f-47d4-b335-0a1c87aaceab" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/alink" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ssh.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ssh.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/pkg/tikv/tikv.go" beforeDir="false" afterPath="$PROJECT_DIR$/pkg/tikv/tikv.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
