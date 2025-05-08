@@ -1,4 +1,5 @@
 package tikv
+
 //
 //import (
 //	"context"
@@ -8,6 +9,8 @@ package tikv
 //
 //	"alink/utils/base"
 //	"github.com/tikv/client-go/v2"
+//	"bufio"
+//	"os"
 //)
 //
 //type TikvCrud struct {
@@ -98,19 +101,21 @@ package tikv
 //	fmt.Printf("\n=== TiKV Shell (Connected to %s:%s) ===\n", t.ip, t.port)
 //	fmt.Println("Commands: set, get, ls, stat, delete, help, exit")
 //
+//	scanner := bufio.NewScanner(os.Stdin)
 //	for {
 //		fmt.Print("tikv> ")
-//		var cmd string
-//		fmt.Scanln(&cmd)
+//
+//		// 使用 Scanner 读取整行输入
+//		if !scanner.Scan() {
+//			fmt.Println("Error reading input:", scanner.Err())
+//			continue
+//		}
+//
+//		cmd := scanner.Text()
 //
 //		cmd = strings.TrimSpace(cmd)
 //		if cmd == "" {
 //			continue
-//		}
-//
-//		if cmd == "exit" {
-//			fmt.Println("Returning to main shell...")
-//			break
 //		}
 //
 //		parts := strings.SplitN(cmd, " ", 2)
@@ -119,7 +124,11 @@ package tikv
 //		}
 //
 //		action := parts[0]
-//		if action == "help" {
+//		switch action {
+//		case "exit":
+//			fmt.Println("Returning to main shell...")
+//			return
+//		case "help":
 //			fmt.Println("\nAvailable Commands:")
 //			fmt.Println("  set <key>=<value>        - Create or update a key-value pair")
 //			fmt.Println("  get <key>                - Retrieve the value of a key")
@@ -128,10 +137,7 @@ package tikv
 //			fmt.Println("  delete <key>             - Delete a key-value pair")
 //			fmt.Println("  exit                     - Exit the TiKV shell")
 //			fmt.Println("  help                     - Show this help message")
-//			continue
-//		}
-//
-//		if action == "set" {
+//		case "set":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: set <key>=<value>")
 //				continue
@@ -146,7 +152,7 @@ package tikv
 //			key, value := strings.Split(kvPart, "=", 2)
 //			success, result := t.Create(map[string]interface{}{"value": value}, key)
 //			fmt.Printf("Set %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-//		} else if action == "get" {
+//		case "get":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: get <key>")
 //				continue
@@ -159,12 +165,12 @@ package tikv
 //			} else {
 //				fmt.Printf("Error: %v\n", result)
 //			}
-//		} else if action == "ls" {
+//		case "ls":
 //			// 实现 ls 命令
-//		} else if action == "stat" {
+//		case "stat":
 //			success, result := t.Stats(nil)
 //			fmt.Printf("Stats: %v\n", result)
-//		} else if action == "delete" {
+//		case "delete":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: delete <key>")
 //				continue
@@ -173,7 +179,7 @@ package tikv
 //			key := parts[1]
 //			success, result := t.Delete(key)
 //			fmt.Printf("Delete %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-//		} else {
+//		default:
 //			fmt.Printf("Unknown command: %s\n", action)
 //		}
 //	}

@@ -1,16 +1,20 @@
 package es
+
 //
 //import (
-//	"bytes"
 //	"context"
+//	"bytes"
 //	"encoding/json"
 //	"fmt"
 //	"log"
 //	"strings"
+//	"time"
 //
-//	//"alink/utils/base"
+//	"alink/utils/base"
 //	"github.com/elastic/go-elasticsearch/v8"
 //	"github.com/elastic/go-elasticsearch/v8/esapi"
+//	"bufio"
+//	"os"
 //)
 //
 //type EsCrud struct {
@@ -170,19 +174,21 @@ package es
 //	fmt.Printf("\n=== Elasticsearch Shell (Connected to %s:%s) ===\n", e.ip, e.port)
 //	fmt.Println("Commands: set, get, ls, stat, delete, help, exit")
 //
+//	scanner := bufio.NewScanner(os.Stdin)
 //	for {
 //		fmt.Print(fmt.Sprintf("es[%s]> ", e.index))
-//		var cmd string
-//		fmt.Scanln(&cmd)
+//
+//		// 使用 Scanner 读取整行输入
+//		if !scanner.Scan() {
+//			fmt.Println("Error reading input:", scanner.Err())
+//			continue
+//		}
+//
+//		cmd := scanner.Text()
 //
 //		cmd = strings.TrimSpace(cmd)
 //		if cmd == "" {
 //			continue
-//		}
-//
-//		if cmd == "exit" {
-//			fmt.Println("Returning to main shell...")
-//			break
 //		}
 //
 //		parts := strings.SplitN(cmd, " ", 2)
@@ -191,7 +197,11 @@ package es
 //		}
 //
 //		action := parts[0]
-//		if action == "help" {
+//		switch action {
+//		case "exit":
+//			fmt.Println("Returning to main shell...")
+//			return
+//		case "help":
 //			fmt.Println("\nAvailable Commands:")
 //			fmt.Println("  set [id=]<key>=<value>   - Create or update a document")
 //			fmt.Println("  get <id>                 - Retrieve a document by ID")
@@ -200,10 +210,7 @@ package es
 //			fmt.Println("  delete <id>              - Delete a document by ID")
 //			fmt.Println("  exit                     - Exit the Elasticsearch shell")
 //			fmt.Println("  help                     - Show this help message")
-//			continue
-//		}
-//
-//		if action == "set" {
+//		case "set":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: set [id=]<key>=<value>")
 //				fmt.Println("Example: set id=1 name=John age=30")
@@ -215,11 +222,13 @@ package es
 //			docID := ""
 //			data := make(map[string]interface{})
 //
+//			// 检查是否有指定的文档 ID
 //			if strings.HasPrefix(dataPart, "id=") {
 //				idPart, dataPart := strings.SplitN(dataPart, " ", 2)
 //				docID = strings.Split(idPart, "=")[1]
 //			}
 //
+//			// 解析键值对
 //			kvPairs := strings.Split(dataPart, ",")
 //			for _, pair := range kvPairs {
 //				if strings.Contains(pair, "=") {
@@ -230,7 +239,7 @@ package es
 //
 //			success, result := e.Create(data, docID)
 //			fmt.Printf("Set %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-//		} else if action == "get" {
+//		case "get":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: get <id>")
 //				continue
@@ -243,12 +252,12 @@ package es
 //			} else {
 //				fmt.Printf("Error: %v\n", result)
 //			}
-//		} else if action == "ls" {
+//		case "ls":
 //			// 实现 ls 命令
-//		} else if action == "stat" {
+//		case "stat":
 //			success, result := e.Stats(nil)
 //			fmt.Printf("Stats: %v\n", result)
-//		} else if action == "delete" {
+//		case "delete":
 //			if len(parts) < 2 {
 //				fmt.Println("Usage: delete <id>")
 //				continue
@@ -257,7 +266,7 @@ package es
 //			docID := parts[1]
 //			success, result := e.Delete(docID)
 //			fmt.Printf("Delete %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-//		} else {
+//		default:
 //			fmt.Printf("Unknown command: %s\n", action)
 //		}
 //	}

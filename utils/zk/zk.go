@@ -2,16 +2,18 @@ package zk
 
 import (
 	"fmt"
-	"github.com/samuel/go-zookeeper/zk"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/chzyer/readline"
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 type ZkCrud struct {
-	ip     string
-	port   string
-	conn   *zk.Conn
+	ip       string
+	port     string
+	conn     *zk.Conn
 	basePath string
 }
 
@@ -22,15 +24,15 @@ func NewZkCrud(info string) *ZkCrud {
 	}
 
 	return &ZkCrud{
-		ip: parts[0],
-		port: parts[1],
+		ip:       parts[0],
+		port:     parts[1],
 		basePath: "/",
 	}
 }
 
 func (z *ZkCrud) connect() {
 	address := fmt.Sprintf("%s:%s", z.ip, z.port)
-	conn, _, err := zk.Connect([]string{address}, 10 * time.Second)
+	conn, _, err := zk.Connect([]string{address}, 10*time.Second)
 	if err != nil {
 		log.Fatal("Error connecting to ZooKeeper:", err)
 	}
@@ -38,20 +40,24 @@ func (z *ZkCrud) connect() {
 	z.conn = conn
 }
 
-func (z *ZkCrud) Create(data map[string]interface{}, identifier string) (bool, interface{}) {
+func (z *ZkCrud) Create(data interface{}, identifier string) (bool, interface{}) {
+	// 验证路径是否合法
+	if !strings.HasPrefix(identifier, "/") {
+		return false, fmt.Errorf("invalid path: %s", identifier)
+	}
+
 	if z.conn == nil {
 		z.connect()
 	}
 
-	path := z.basePath + identifier
 	acl := zk.WorldACL(zk.PermAll)
 
-	_, err := z.conn.Create(path, []byte(fmt.Sprint(data)), 0, acl)
+	_, err := z.conn.Create(identifier, []byte(fmt.Sprint(data)), 0, acl)
 	if err != nil {
 		return false, err
 	}
 
-	return true, fmt.Sprintf("Node created at %s", path)
+	return true, fmt.Sprintf("Node created at %s", identifier)
 }
 
 func (z *ZkCrud) Read(query interface{}) (bool, interface{}) {
@@ -68,7 +74,7 @@ func (z *ZkCrud) Read(query interface{}) (bool, interface{}) {
 	return true, string(data)
 }
 
-func (z *ZkCrud) Update(identifier string, newData map[string]interface{}) (bool, interface{}) {
+func (z *ZkCrud) Update(identifier string, newData interface{}) (bool, interface{}) {
 	return z.Create(newData, identifier)
 }
 
@@ -77,8 +83,7 @@ func (z *ZkCrud) Delete(identifier string) (bool, interface{}) {
 		z.connect()
 	}
 
-	path := z.basePath + identifier
-	err := z.conn.Delete(path, -1)
+	err := z.conn.Delete(identifier, -1)
 	if err != nil {
 		return false, err
 	}
@@ -92,22 +97,30 @@ func (z *ZkCrud) Stats(query interface{}) (bool, interface{}) {
 
 func (z *ZkCrud) Run() {
 	z.connect()
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:          "zk> ",
+		HistoryFile:     "/tmp/zk_readline.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+	})
+	if err != nil {
+		fmt.Printf("Error initializing readline: %v\n", err)
+		return
+	}
+	defer rl.Close()
+
 	fmt.Printf("\n=== ZooKeeper Shell (Connected to %s:%s) ===\n", z.ip, z.port)
 	fmt.Println("Commands: set, get, ls, stat, delete, help, exit")
 
 	for {
-		fmt.Print("zk> ")
-		var cmd string
-		fmt.Scanln(&cmd)
-
-		cmd = strings.TrimSpace(cmd)
-		if cmd == "" {
-			continue
+		line, err := rl.Readline()
+		if err != nil {
+			break
 		}
 
-		if cmd == "exit" {
-			fmt.Println("Returning to main shell...")
-			break
+		cmd := strings.TrimSpace(line)
+		if cmd == "" {
+			continue
 		}
 
 		parts := strings.SplitN(cmd, " ", 2)
@@ -116,7 +129,11 @@ func (z *ZkCrud) Run() {
 		}
 
 		action := parts[0]
-		if action == "help" {
+		switch action {
+		case "exit":
+			fmt.Println("Returning to main shell...")
+			return
+		case "help":
 			fmt.Println("\nAvailable Commands:")
 			fmt.Println("  set <path>=<data> - Create or update a znode")
 			fmt.Println("  get <path>         - Retrieve data from a znode")
@@ -125,10 +142,7 @@ func (z *ZkCrud) Run() {
 			fmt.Println("  delete <path>      - Delete a znode")
 			fmt.Println("  exit               - Exit the ZooKeeper shell")
 			fmt.Println("  help               - Show this help message")
-			continue
-		}
-
-		if action == "set" {
+		case "set":
 			if len(parts) < 2 {
 				fmt.Println("Usage: set <path>=<data>")
 				continue
@@ -146,9 +160,9 @@ func (z *ZkCrud) Run() {
 				continue
 			}
 			path, data := kvParts[0], kvParts[1]
-			success, result := z.Create(map[string]interface{}{"data": data}, path)
+			success, result := z.Create(data, path)
 			fmt.Printf("Set %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-		} else if action == "get" {
+		case "get":
 			if len(parts) < 2 {
 				fmt.Println("Usage: get <path>")
 				continue
@@ -161,7 +175,7 @@ func (z *ZkCrud) Run() {
 			} else {
 				fmt.Printf("Error: %v\n", result)
 			}
-		} else if action == "ls" {
+		case "ls":
 			if len(parts) < 2 {
 				path := z.basePath
 				children, err := z.getChildren(path)
@@ -180,10 +194,10 @@ func (z *ZkCrud) Run() {
 				continue
 			}
 			fmt.Printf("Children of '%s': %v\n", path, children)
-		} else if action == "stat" {
+		case "stat":
 			_, result := z.Stats(nil)
 			fmt.Printf("Stats: %v\n", result)
-		} else if action == "delete" {
+		case "delete":
 			if len(parts) < 2 {
 				fmt.Println("Usage: delete <path>")
 				continue
@@ -192,7 +206,7 @@ func (z *ZkCrud) Run() {
 			path := parts[1]
 			success, result := z.Delete(path)
 			fmt.Printf("Delete %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
-		} else {
+		default:
 			fmt.Printf("Unknown command: %s\n", action)
 		}
 	}

@@ -1,13 +1,17 @@
 package kafka
+
 //
 //import (
 //	"context"
 //	"fmt"
 //	"log"
+//	"strconv"
 //	"strings"
 //
 //	"alink/utils/base"
 //	"github.com/segmentio/kafka-go"
+//	"bufio"
+//	"os"
 //)
 //
 //type KafkaCrud struct {
@@ -44,13 +48,13 @@ package kafka
 //	})
 //}
 //
-//func (k *KafkaCrud) Create(topic, message string) (bool, interface{}) {
+//func (k *KafkaCrud) Create(data map[string]interface{}, identifier string) (bool, interface{}) {
 //	if k.writer == nil {
 //		k.connect()
 //	}
 //
 //	err := k.writer.WriteMessages(context.Background(), kafka.Message{
-//		Value: []byte(message),
+//		Value: []byte(fmt.Sprint(data)),
 //	})
 //	if err != nil {
 //		return false, err
@@ -59,9 +63,14 @@ package kafka
 //	return true, "Message sent successfully"
 //}
 //
-//func (k *KafkaCrud) Read(count int) (bool, interface{}) {
+//func (k *KafkaCrud) Read(query interface{}) (bool, interface{}) {
 //	if k.reader == nil {
 //		k.connect()
+//	}
+//
+//	count := 1
+//	if query != nil {
+//		count = query.(int)
 //	}
 //
 //	messages := make([]string, 0)
@@ -76,16 +85,16 @@ package kafka
 //	return true, messages
 //}
 //
-//func (k *KafkaCrud) Update(topic, message string) (bool, interface{}) {
-//	return k.Create(topic, message)
+//func (k *KafkaCrud) Update(identifier string, newData map[string]interface{}) (bool, interface{}) {
+//	return k.Create(newData, identifier)
 //}
 //
-//func (k *KafkaCrud) Delete(topic string) (bool, interface{}) {
-//	// 实现删除操作
+//func (k *KafkaCrud) Delete(identifier string) (bool, interface{}) {
+//	return false, "Delete operation is not supported for Kafka"
 //}
 //
 //func (k *KafkaCrud) Stats(query interface{}) (bool, interface{}) {
-//	// 实现统计操作
+//	return true, "Statistics information is not directly available in the current Kafka client version."
 //}
 //
 //func (k *KafkaCrud) Run() {
@@ -93,19 +102,21 @@ package kafka
 //	fmt.Printf("\n=== Kafka Shell (Connected to %s:%s) ===\n", k.ip, k.port)
 //	fmt.Println("Commands: set, get, ls, stat, delete, help, exit")
 //
+//	scanner := bufio.NewScanner(os.Stdin)
 //	for {
 //		fmt.Print("kafka> ")
-//		var cmd string
-//		fmt.Scanln(&cmd)
+//
+//		// 使用 Scanner 读取整行输入
+//		if !scanner.Scan() {
+//			fmt.Println("Error reading input:", scanner.Err())
+//			continue
+//		}
+//
+//		cmd := scanner.Text()
 //
 //		cmd = strings.TrimSpace(cmd)
 //		if cmd == "" {
 //			continue
-//		}
-//
-//		if cmd == "exit" {
-//			fmt.Println("Returning to main shell...")
-//			break
 //		}
 //
 //		parts := strings.SplitN(cmd, " ", 2)
@@ -114,7 +125,11 @@ package kafka
 //		}
 //
 //		action := parts[0]
-//		if action == "help" {
+//		switch action {
+//		case "exit":
+//			fmt.Println("Returning to main shell...")
+//			return
+//		case "help":
 //			fmt.Println("\nAvailable Commands:")
 //			fmt.Println("  set <topic> <message>   - Send a message to a topic")
 //			fmt.Println("  get <count>             - Consume messages from a topic")
@@ -123,9 +138,55 @@ package kafka
 //			fmt.Println("  delete <topic>          - Delete a topic")
 //			fmt.Println("  exit                    - Exit the Kafka shell")
 //			fmt.Println("  help                    - Show this help message")
-//			continue
-//		}
+//		case "set":
+//			if len(parts) < 2 {
+//				fmt.Println("Usage: set <topic> <message>")
+//				continue
+//			}
 //
-//		// 处理其他命令
+//			topicMsg := parts[1]
+//			topic, message, found := strings.Cut(topicMsg, " ")
+//			if !found {
+//				fmt.Println("Invalid format. Use 'set <topic> <message>'")
+//				continue
+//			}
+//
+//			success, result := k.Create(map[string]interface{}{"message": message}, topic)
+//			fmt.Printf("Set %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
+//		case "get":
+//			if len(parts) < 2 {
+//				fmt.Println("Usage: get <count>")
+//				continue
+//			}
+//
+//			count, err := strconv.Atoi(parts[1])
+//			if err != nil {
+//				fmt.Println("Invalid count. Please provide a valid integer.")
+//				continue
+//			}
+//
+//			success, result := k.Read(count)
+//			if success {
+//				fmt.Printf("Messages: %v\n", result)
+//			} else {
+//				fmt.Printf("Error: %v\n", result)
+//			}
+//		case "ls":
+//			// 实现 ls 命令
+//		case "stat":
+//			success, result := k.Stats(nil)
+//			fmt.Printf("Stats: %v\n", result)
+//		case "delete":
+//			if len(parts) < 2 {
+//				fmt.Println("Usage: delete <topic>")
+//				continue
+//			}
+//
+//			topic := parts[1]
+//			success, result := k.Delete(topic)
+//			fmt.Printf("Delete %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
+//		default:
+//			fmt.Printf("Unknown command: %s\n", action)
+//		}
 //	}
 //}
