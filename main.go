@@ -2,6 +2,7 @@ package main
 
 import (
 	"alink/utils/base"
+	"alink/utils/tikv"
 	"alink/utils/zk"
 	"fmt"
 	"github.com/chzyer/readline"
@@ -87,8 +88,8 @@ func main() {
 	//shell.RegisterBackend("es", func(info string) base.BaseCRUDInterface {
 	//	return es.NewEsCrud(info)
 	//})
-	//shell.RegisterBackend("tikv", func(info string) base.BaseCRUDInterface {
-	//	return tikv.NewTikvCrud(info)
-	//})
+	shell.RegisterBackend("tikv", func(info string) base.BaseCRUDInterface {
+		return tikv.NewTikvCrud(info)
+	})
 	shell.Start()
 }

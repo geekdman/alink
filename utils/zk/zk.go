@@ -1,6 +1,7 @@
 package zk
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -22,32 +23,25 @@ func NewZkCrud(info string) *ZkCrud {
 	if len(parts) != 2 {
 		log.Fatal("Invalid ZooKeeper connection info. Use 'ip:port' format.")
 	}
+    // 获取zk连接
+	address := fmt.Sprintf("%s:%s", parts[0], parts[1])
+	conn, _, err := zk.Connect([]string{address}, 10*time.Second,zk.WithLogInfo(false))
+	if err != nil {
+		log.Fatal("Error connecting to ZooKeeper:", err)
+	}
 
 	return &ZkCrud{
 		ip:       parts[0],
 		port:     parts[1],
 		basePath: "/",
+		conn: conn,
 	}
-}
-
-func (z *ZkCrud) connect() {
-	address := fmt.Sprintf("%s:%s", z.ip, z.port)
-	conn, _, err := zk.Connect([]string{address}, 10*time.Second)
-	if err != nil {
-		log.Fatal("Error connecting to ZooKeeper:", err)
-	}
-
-	z.conn = conn
 }
 
 func (z *ZkCrud) Create(data interface{}, identifier string) (bool, interface{}) {
 	// 验证路径是否合法
 	if !strings.HasPrefix(identifier, "/") {
 		return false, fmt.Errorf("invalid path: %s", identifier)
-	}
-
-	if z.conn == nil {
-		z.connect()
 	}
 
 	acl := zk.WorldACL(zk.PermAll)
@@ -61,9 +55,6 @@ func (z *ZkCrud) Create(data interface{}, identifier string) (bool, interface{})
 }
 
 func (z *ZkCrud) Read(query interface{}) (bool, interface{}) {
-	if z.conn == nil {
-		z.connect()
-	}
 
 	path := query.(string)
 	data, _, err := z.conn.Get(path)
@@ -79,10 +70,6 @@ func (z *ZkCrud) Update(identifier string, newData interface{}) (bool, interface
 }
 
 func (z *ZkCrud) Delete(identifier string) (bool, interface{}) {
-	if z.conn == nil {
-		z.connect()
-	}
-
 	err := z.conn.Delete(identifier, -1)
 	if err != nil {
 		return false, err
@@ -91,14 +78,55 @@ func (z *ZkCrud) Delete(identifier string) (bool, interface{}) {
 	return true, "Node deleted successfully"
 }
 
-func (z *ZkCrud) Stats(query interface{}) (bool, interface{}) {
-	return true, "Statistics information is not directly available in the current ZooKeeper client version."
+func (z *ZkCrud) Stats() (bool, interface{}) {
+	// 获取集群配置节点
+	configPath := "/zookeeper/config"
+	exists, _, err := z.conn.Exists(configPath)
+	if err != nil {
+		return false, fmt.Errorf("无法检查配置节点: %v", err)
+	}
+
+	if !exists {
+		return false, fmt.Errorf("配置节点 '%s' 不存在", configPath)
+	}
+
+	data, _, err := z.conn.Get(configPath)
+	if err != nil {
+		return false, fmt.Errorf("无法读取配置节点数据: %v", err)
+	}
+
+	// 解析配置内容
+	lines := strings.Split(string(data), "\n")
+	var servers []string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "server.") {
+			parts := strings.Split(line, "=")
+			if len(parts) >= 2 {
+				servers = append(servers, parts[1])
+			}
+		}
+	}
+
+	// 获取当前节点状态
+
+	// 构建 JSON 结果
+	result := map[string]interface{}{
+		"cluster_servers": servers,
+		//"config_version":  stat.Version,
+	}
+
+	jsonData, _ := json.MarshalIndent(result, "", "  ")
+	return true, string(jsonData)}
+
+func (z *ZkCrud) Close() {
+	z.conn.Close()
+	//fmt.Println("关闭zk 连接")
 }
 
 func (z *ZkCrud) Run() {
-	z.connect()
+
 	rl, err := readline.NewEx(&readline.Config{
-		Prompt:          "zk> ",
+		Prompt:          fmt.Sprintf("zk[%s:%s]> ", z.ip, z.port),
 		HistoryFile:     "/tmp/zk_readline.tmp",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
@@ -131,6 +159,7 @@ func (z *ZkCrud) Run() {
 		action := parts[0]
 		switch action {
 		case "exit":
+			z.Close()
 			fmt.Println("Returning to main shell...")
 			return
 		case "help":
@@ -195,8 +224,13 @@ func (z *ZkCrud) Run() {
 			}
 			fmt.Printf("Children of '%s': %v\n", path, children)
 		case "stat":
-			_, result := z.Stats(nil)
-			fmt.Printf("Stats: %v\n", result)
+			// 获取集群信息
+			success, result := z.Stats()
+			if success {
+				fmt.Printf("Cluster Stats:\n%s\n", result)
+			} else {
+				fmt.Printf("Error getting cluster stats: %v\n", result)
+			}
 		case "delete":
 			if len(parts) < 2 {
 				fmt.Println("Usage: delete <path>")
@@ -208,14 +242,12 @@ func (z *ZkCrud) Run() {
 			fmt.Printf("Delete %s: %v\n", map[bool]string{true: "successful", false: "failed"}[success], result)
 		default:
 			fmt.Printf("Unknown command: %s\n", action)
+
 		}
 	}
 }
 
 func (z *ZkCrud) getChildren(path string) ([]string, error) {
-	if z.conn == nil {
-		z.connect()
-	}
 
 	children, _, err := z.conn.Children(path)
 	if err != nil {

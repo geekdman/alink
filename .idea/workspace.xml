@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="1ca3c3a3-cb7f-47d4-b335-0a1c87aaceab" name="Default Changelist" comment="">
+    <list default="true" id="1ca3c3a3-cb7f-47d4-b335-0a1c87aaceab" name="Default Changelist" comment="fix：zk增加set/delete/ls 功能">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/base/base.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/base/base.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/es/es.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/es/es.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/kafka/kafka.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/kafka/kafka.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/tikv/tikv.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/tikv/tikv.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/zk/zk.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/zk/zk.go" afterDir="false" />
     </list>
@@ -141,6 +139,10 @@
       </map>
     </option>
     <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="fix：zk增加set/delete/ls 功能" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix：zk增加set/delete/ls 功能" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
