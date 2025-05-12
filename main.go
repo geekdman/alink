@@ -46,7 +46,7 @@ func (m *MultiStorageShell) Start() {
 		if err != nil {
 			break
 		}
-		fmt.Println("===========")
+		//fmt.Println("===========")
 		cmd := strings.TrimSpace(line)
 		if cmd == "" {
 			continue
@@ -81,6 +81,7 @@ func (m *MultiStorageShell) Start() {
 }
 
 func main() {
+
 	shell := NewMultiStorageShell()
 	shell.RegisterBackend("zk", func(info string) base.BaseCRUDInterface {
 		return zk.NewZkCrud(info)

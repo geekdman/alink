@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/chzyer/readline"
+	mylog "github.com/pingcap/log"
+	"github.com/tikv/client-go/v2/txnkv"
+	"go.uber.org/zap/zapcore"
 	"log"
 	"strings"
-
-	"github.com/chzyer/readline"
-	"github.com/tikv/client-go/v2/txnkv"
 )
 
 type TiKVCrud struct {
@@ -18,13 +19,15 @@ type TiKVCrud struct {
 	kv   *txnkv.Client
 }
 
-func NewTikvCrud(info string) *TiKVCrud {
-	client, err := txnkv.NewClient([]string{info})
+func NewTikvCrud(endpoint string) *TiKVCrud {
+
+	mylog.SetLevel(zapcore.ErrorLevel)
+	client, err := txnkv.NewClient([]string{endpoint})
 
 	if err != nil {
 		log.Fatal("Error creating TiKV connection:", err)
 	}
-	parts := strings.Split(info, ":")
+	parts := strings.Split(endpoint, ":")
 
 	return &TiKVCrud{
 		ip:   parts[0],
@@ -163,7 +166,7 @@ func (t *TiKVCrud) Run() {
 			fmt.Println("\nAvailable Commands:")
 			fmt.Println("  set <key>=<data> - Create or update a key-value pair")
 			fmt.Println("  get <key>        - Retrieve data by key")
-			fmt.Println("  ls [ startkey [ endkey]]             - List keys in a prefix (not supported in this version)")
+			fmt.Println("  ls <startkey>    - List keys in a prefix (not supported in this version)")
 			fmt.Println("  stat             - Show TiKV cluster statistics")
 			fmt.Println("  delete <key>     - Delete a key")
 			fmt.Println("  exit             - Exit the TiKV shell")
@@ -202,21 +205,14 @@ func (t *TiKVCrud) Run() {
 				fmt.Printf("Error: %v\n", result)
 			}
 		case "ls":
-			parts := strings.SplitN(cmd, " ", 3) // Split into up to 3 parts to handle start and end keys
+			parts := strings.SplitN(cmd, " ", 2) // Split into up to 2 parts
 			if len(parts) < 2 {
-				fmt.Println("Usage: ls <startkey> [<endkey>]")
+				fmt.Println("Usage: ls <startkey>")
 				continue
 			}
 
 			startKey := parts[1]
-			var endKey *string
-
-			if len(parts) == 3 {
-				endKeyStr := parts[2]
-				endKey = &endKeyStr
-			}
-
-			t.ListKeys(startKey, endKey)
+			t.ListKeys(startKey)
 
 		case "stat":
 			success, result := t.Stats()
@@ -241,8 +237,8 @@ func (t *TiKVCrud) Run() {
 	}
 }
 
-// 列出以什么开头的key
-func (t *TiKVCrud) ListKeys(startKey string, endKey *string) {
+// 列出从 startKey 开始的所有键，直到遇到比 startKey 字典序大的键为止
+func (t *TiKVCrud) ListKeys(startKey string) {
 	txn, err := t.kv.Begin()
 	if err != nil {
 		fmt.Printf("Error beginning transaction: %v\n", err)
@@ -250,23 +246,28 @@ func (t *TiKVCrud) ListKeys(startKey string, endKey *string) {
 	}
 	defer txn.Rollback()
 
-	// 如果 endKey 未指定，则假定为无限大（即列出从 startKey 开始的所有键）
-	var end []byte
-	if endKey != nil {
-		end = []byte(*endKey)
+	start := []byte(startKey)
+
+	// 创建迭代器，从 startKey 开始，到 startKey 的下一个字典序键结束
+	end := []byte(startKey)
+	// 如果 startKey 是空字符串，从头开始
+	if len(startKey) == 0 {
+		start = nil
+		end = []byte("")
 	} else {
-		end = []byte("\xff\xff\xff\xff\xff\xff\xff\xff")
+		// 找到 startKey 的下一个字典序键作为 end
+		for i := len(end) - 1; i >= 0; i-- {
+			if end[i] < 0xff {
+				end[i]++
+				end = end[:i+1]
+				break
+			}
+		}
+		if len(end) == 0 {
+			end = []byte{0x00} // 如果 startKey 全是 0xff，则 end 设置为 0x00
+		}
 	}
 
-	// 转换 startKey 为空字符串时的处理
-	var start []byte
-	if startKey != "" {
-		start = []byte(startKey)
-	} else {
-		start = nil // 使用 nil 表示从头开始
-	}
-
-	// 扫描键空间中从 start 到 end 之间的所有键
 	iter, err := txn.Iter(start, end)
 	if err != nil {
 		fmt.Printf("Error creating iterator: %v\n", err)
@@ -274,7 +275,14 @@ func (t *TiKVCrud) ListKeys(startKey string, endKey *string) {
 	}
 	defer iter.Close()
 
-	fmt.Printf("Keys in the specified range:\n")
+	// 检查是否没有键
+	if !iter.Valid() {
+		fmt.Printf("No keys found starting with '%s'.\n", startKey)
+		return
+	}
+
+	// 打印所有从 startKey 开始的键
+	fmt.Printf("Keys starting with '%s':\n", startKey)
 	for iter.Valid() {
 		key := iter.Key()
 		fmt.Println(string(key))
