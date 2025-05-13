@@ -9,14 +9,23 @@ import (
 	mylog "github.com/pingcap/log"
 	"github.com/tikv/client-go/v2/txnkv"
 	"go.uber.org/zap/zapcore"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
+	"time"
 )
 
 type TiKVCrud struct {
 	ip   string
 	port string
 	kv   *txnkv.Client
+}
+
+type Clusterinfo struct {
+	pdstatus  interface{}
+	tikvstatus interface{}
+	clusterinfo interface{}
 }
 
 func NewTikvCrud(endpoint string) *TiKVCrud {
@@ -107,17 +116,19 @@ func (t *TiKVCrud) Delete(identifier string) (bool, interface{}) {
 }
 
 func (t *TiKVCrud) Stats() (bool, interface{}) {
-	//stats, err := t.kv.GetClusterInfo(context.Background())
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//统计信息 := make(map[string]interface{})
-	//统计信息["ClusterID"] = stats.ClusterID
-	//统计信息["StoreCount"] = stats.Stores
-	//统计信息["RegionCount"] = stats.RegionCount
-	//t.kv.
-	return true, "xxx"
+	//pdstatus, err1 := t.GetPDstatus()
+	tikvstatus, err2 := t.GetTikvstatus()
+	clusterinfo, err3 := t.GetClustertatus()
+
+	if err2 != nil || err3 != nil {
+		return false, fmt.Errorf("error retrieving cluster info: tikvstatus error: %v, clusterinfo error: %v", err2, err3)
+	}
+
+	return true, &Clusterinfo{
+		//pdstatus:     pdstatus,
+		tikvstatus:   tikvstatus,
+		clusterinfo:  clusterinfo,
+	}
 }
 
 func (t *TiKVCrud) Close() {
@@ -216,11 +227,16 @@ func (t *TiKVCrud) Run() {
 
 		case "stat":
 			success, result := t.Stats()
+			//fmt.Println(result.tikvstatus)
 			if success {
-				jsonData, _ := json.MarshalIndent(result, "", "  ")
-				fmt.Printf("TiKV Stats:\n%s\n", jsonData)
+				jsonData, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					fmt.Printf("Error formatting TiKV stats: %v\n", err)
+				} else {
+					fmt.Printf("TiKV Cluster Status:\n%s\n", jsonData)
+				}
 			} else {
-				fmt.Printf("Error getting TiKV stats: %v\n", result)
+				fmt.Printf("Error getting TiKV cluster status: %v\n", result)
 			}
 		case "delete":
 			if len(parts) < 2 {
@@ -282,7 +298,7 @@ func (t *TiKVCrud) ListKeys(startKey string) {
 	}
 
 	// 打印所有从 startKey 开始的键
-	fmt.Printf("Keys starting with '%s':\n", startKey)
+	fmt.Println(strings.Repeat("==", 10))
 	for iter.Valid() {
 		key := iter.Key()
 		fmt.Println(string(key))
@@ -291,4 +307,113 @@ func (t *TiKVCrud) ListKeys(startKey string) {
 			return
 		}
 	}
+}
+
+// 访问pd 的api
+func (t *TiKVCrud) Request(apiurl string) (interface{}, error) {
+	resp, err := http.Get(apiurl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to PD: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get cluster status: HTTP status %d", resp.StatusCode)
+	}
+
+	byteData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(byteData, &res); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON response: %v", err)
+	}
+
+	return &res, nil
+}
+
+type PDStatus struct {
+	Name       string   `json:"name"`
+	MemberId   float64  `json:"member_id"`
+	ClientUrls []string `json:"client_urls"`
+	Health     bool     `json:"health"`
+}
+
+type TikvStatus struct {
+	Count  int `json:"count"`
+	Stores []struct {
+		Store struct {
+			Id             int    `json:"id"`
+			Address        string `json:"address"`
+			Version        string `json:"version"`
+			PeerAddress    string `json:"peer_address"`
+			StatusAddress  string `json:"status_address"`
+			GitHash        string `json:"git_hash"`
+			StartTimestamp int    `json:"start_timestamp"`
+			DeployPath     string `json:"deploy_path"`
+			LastHeartbeat  int64  `json:"last_heartbeat"`
+			NodeState      int    `json:"node_state"`
+			StateName      string `json:"state_name"`
+		} `json:"store"`
+		Status struct {
+			Capacity     string  `json:"capacity"`
+			Available    string  `json:"available"`
+			UsedSize     string  `json:"used_size"`
+			LeaderCount  int     `json:"leader_count"`
+			LeaderWeight int     `json:"leader_weight"`
+			LeaderScore  int     `json:"leader_score"`
+			LeaderSize   int     `json:"leader_size"`
+			RegionCount  int     `json:"region_count"`
+			RegionWeight int     `json:"region_weight"`
+			RegionScore  float64 `json:"region_score"`
+			RegionSize   int     `json:"region_size"`
+			SlowScore    int     `json:"slow_score"`
+			SlowTrend    struct {
+				CauseValue  int `json:"cause_value"`
+				CauseRate   int `json:"cause_rate"`
+				ResultValue int `json:"result_value"`
+				ResultRate  int `json:"result_rate"`
+			} `json:"slow_trend"`
+			StartTs         time.Time `json:"start_ts"`
+			LastHeartbeatTs time.Time `json:"last_heartbeat_ts"`
+			Uptime          string    `json:"uptime"`
+		} `json:"status"`
+	} `json:"stores"`
+}
+
+type CluserStatus struct {
+	Id           int64 `json:"id"`
+	MaxPeerCount int   `json:"max_peer_count"`
+}
+// 获取pd 状态
+// http://%s:%s/pd/api/v1/health
+func (t *TiKVCrud) GetPDstatus() (interface{}, error) {
+	pdinfo, err := t.Request(fmt.Sprintf("http://%s:%s/pd/api/v1/health", t.ip, t.port))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(pdinfo)
+	return pdinfo, nil
+}
+
+// 获取tikv 状态
+// http://%s:%s/pd/api/v1/stores
+func (t *TiKVCrud) GetTikvstatus() (interface{}, error) {
+	clusterTikvInfo, err := t.Request(fmt.Sprintf("http://%s:%s/pd/api/v1/stores", t.ip, t.port))
+	if err != nil {
+		return nil, err
+	}
+	return clusterTikvInfo, nil
+}
+
+// 获取 集群信息
+// http://%s:%s/pd/api/v1/cluster
+func (t *TiKVCrud) GetClustertatus() (interface{}, error) {
+	clusterPdInfo, err := t.Request(fmt.Sprintf("http://%s:%s/pd/api/v1/cluster", t.ip, t.port))
+	if err != nil {
+		return nil, err
+	}
+	return clusterPdInfo, nil
 }
