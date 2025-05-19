@@ -1,3 +1,4 @@
+go build -o alink-darwin-amd64
 # linux
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o alink-linux-amd64
 # windows 

@@ -116,19 +116,20 @@ func (t *TiKVCrud) Delete(identifier string) (bool, interface{}) {
 }
 
 func (t *TiKVCrud) Stats() (bool, interface{}) {
-	//pdstatus, err1 := t.GetPDstatus()
+	pdstatus, err1 := t.GetPDstatus()
 	tikvstatus, err2 := t.GetTikvstatus()
 	clusterinfo, err3 := t.GetClustertatus()
 
 	if err2 != nil || err3 != nil {
-		return false, fmt.Errorf("error retrieving cluster info: tikvstatus error: %v, clusterinfo error: %v", err2, err3)
+		return false, fmt.Errorf("error retrieving cluster info: pdstatus error: %v, tikvstatus error: %v, clusterinfo error: %v", err1, err2, err3)
 	}
+	// 创建一个 map 存储集群信息
+	clusterMap := make(map[string]interface{})
+	clusterMap["pdstatus"] = pdstatus
+	clusterMap["tikvstatus"] = tikvstatus
+	clusterMap["clusterinfo"] = clusterinfo
 
-	return true, &Clusterinfo{
-		//pdstatus:     pdstatus,
-		tikvstatus:   tikvstatus,
-		clusterinfo:  clusterinfo,
-	}
+	return true, clusterMap
 }
 
 func (t *TiKVCrud) Close() {
@@ -227,7 +228,6 @@ func (t *TiKVCrud) Run() {
 
 		case "stat":
 			success, result := t.Stats()
-			//fmt.Println(result.tikvstatus)
 			if success {
 				jsonData, err := json.MarshalIndent(result, "", "  ")
 				if err != nil {
@@ -390,12 +390,40 @@ type CluserStatus struct {
 // 获取pd 状态
 // http://%s:%s/pd/api/v1/health
 func (t *TiKVCrud) GetPDstatus() (interface{}, error) {
-	pdinfo, err := t.Request(fmt.Sprintf("http://%s:%s/pd/api/v1/health", t.ip, t.port))
+	pdInfo, err := t.Request(fmt.Sprintf("http://%s:%s/pd/api/v1/health", t.ip, t.port))
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(pdinfo)
-	return pdinfo, nil
+
+	// 检查是否为数组
+	pdArray, ok := pdInfo.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format from PD API: not an array")
+	}
+
+	// 遍历数组查找包含 name 和 health 的元素
+	var pdStatus []map[string]interface{}
+	for _, item := range pdArray {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := itemMap["name"].(string); ok {
+			if health, ok := itemMap["health"].(bool); ok {
+				pdStatus = append(pdStatus, map[string]interface{}{
+					"name":    name,
+					"health":  health,
+				})
+				continue
+			}
+		}
+	}
+
+	if pdStatus == nil {
+		return nil, fmt.Errorf("PD status information not found in the response")
+	}
+	fmt.Println("%v",pdStatus)
+	return pdStatus, nil
 }
 
 // 获取tikv 状态
@@ -405,7 +433,56 @@ func (t *TiKVCrud) GetTikvstatus() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return clusterTikvInfo, nil
+
+	// 将结果转换为 map
+	tikvMap, ok := clusterTikvInfo.(*map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format from TiKV API")
+	}
+
+	// 提取 stores 信息
+	stores, ok := (*tikvMap)["stores"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected format for stores in TiKV API response")
+	}
+
+	// 提取每个 TiKV 实例的 address、version 和 state_name
+	var tikvStores []map[string]interface{}
+	for _, store := range stores {
+		storeMap, ok := store.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// 提取 store 信息
+		storeInfo, ok := storeMap["store"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		address, ok := storeInfo["address"].(string)
+		if !ok {
+			address = "N/A"
+		}
+
+		version, ok := storeInfo["version"].(string)
+		if !ok {
+			version = "N/A"
+		}
+
+		stateName, ok := storeInfo["state_name"].(string)
+		if !ok {
+			stateName = "N/A"
+		}
+
+		tikvStores = append(tikvStores, map[string]interface{}{
+			"address":    address,
+			"version":    version,
+			"state_name": stateName,
+		})
+	}
+
+	return tikvStores, nil
 }
 
 // 获取 集群信息
